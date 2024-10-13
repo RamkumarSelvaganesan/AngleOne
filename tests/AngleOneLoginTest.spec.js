@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test } = require('@playwright/test');
 const {LoginPage}  = require('../Pages/LoginPage');
 const {DashboardPage} = require('../Pages/DashboardPage');
 const UserDetails = require('../Constants/UserDetails');

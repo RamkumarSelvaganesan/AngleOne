@@ -35,8 +35,8 @@ exports.Page = class Page {
     }
 
     async captureApiDetailsOnClick(url, clickLocator) {
-        let responseDetails = {};
-        let responseBody = null;
+        let responseDetails ;
+        let responseBody;
 
         // Set up a route to intercept requests matching the URL
         await this.page.route(url, async (route) => {
@@ -125,7 +125,7 @@ exports.Page = class Page {
        // console.log(`======url:${url}, body:${JSON.stringify(body)}, header: ${JSON.stringify(headers)}, method:${method} =========`);
         try {
             // Send the POST request
-            const response = await this.page.evaluate(async ({ url, body, headers, method }) => { // Include method here
+            return await this.page.evaluate(async ({ url, body, headers, method }) => { // Include method here
                 const res = await fetch(url, {
                     method: method,
                     headers: {
@@ -136,8 +136,7 @@ exports.Page = class Page {
                 return res.json(); // Return the JSON response
             }, { url, body, headers, method }); // Pass method as well
 
-            // Return the response
-            return response;
+
         } catch (error) {
             console.error('Error hitting the API:', error);
             return { success: false, message: 'API call failed' };
