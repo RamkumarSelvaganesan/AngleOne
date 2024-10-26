@@ -5,3 +5,4 @@ node_modules/
 /playwright/.cache/
 /StockDetails/Report/combined_stock_data.xlsx
 /StockDetails/*.json
+/Constants/UserDetails.js

@@ -56,7 +56,7 @@ exports.Page = class Page {
         // Wait for the API response to complete
         const response = await this.page.waitForResponse((response) => {
             return response.url() === url && response.status() === 200;
-        }, { timeout: 30000 }); // Increase timeout if necessary
+        }); // Increase timeout if necessary
 
         // Get the response body
         responseBody = await response.body(); // Get the response body
