@@ -8,10 +8,9 @@ async function generateNewDataForStock(transactionDetails, stockDetails) {
     const newJsonObject = {
         stock_name: stockData.symbol_name,
         stock_details: stockData.details,
+        comp_name: stockData.comp_name,
         today_stock_price: stockData.ltp,
-        transaction_details: [],
-       // angleOne_commission_per_share: stockData.charge_per_share,
-       // total_angleOne_commission: stockData.charge_per_share * totalQty
+        transaction_details: []
     };
 
     // Initialize accumulators for calculating averages
@@ -91,12 +90,12 @@ async function generateNewDataForStock(transactionDetails, stockDetails) {
     // Push the average_transaction_details object into the transaction_details array
     newJsonObject.transaction_details.push({ average_transaction_details: averageTransactionDetails });
 
-    const filePath =`StockDetails/${stockData.symbol_name}.json`;
+    const filePath =`StockDetails/Individual/${stockData.symbol_name.trim() !== "" ? stockData.symbol_name : stockData.comp_name}.json`;
     await fs.writeFile(filePath, JSON.stringify(newJsonObject, null, 2), (err) => {
         if (err) {
             console.error('Error writing to file', err);
         } else {
-            console.log('Computed stock details for', stockData.symbol_name );
+            console.log('Computed stock details for', stockData.symbol_name.trim() !== "" ? stockData.symbol_name : stockData.comp_name );
         }
     });
 

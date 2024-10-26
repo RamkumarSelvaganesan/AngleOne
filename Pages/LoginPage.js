@@ -10,7 +10,9 @@ exports.LoginPage = class LoginPage extends Page {
     };
 
     async deleteResultFile(){
-        await this.deleteFileIfExists('./StockDetails/Report/combined_stock_data.xlsx');
+        await this.deleteFilesInFolder('./StockDetails/Individual');
+        await this.deleteFilesInFolder('./StockDetails/Dividends');
+        await this.deleteFilesInFolder('./StockDetails/Report');
     }
 
     async generateOTP(number) {

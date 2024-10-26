@@ -2,6 +2,7 @@ const fs = require('fs');
 const URL = require("../Constants/URL");
 const UserDetails = require("../Constants/UserDetails");
 const { promisify } = require('util');
+const path = require('path');
 
 // Promisify fs methods to use them with async/await
 const access = promisify(fs.access);
@@ -101,8 +102,8 @@ exports.Page = class Page {
             },
             EquityPortfolio: {
                 HoldingDetail: response.data.EquityPortfolio.HoldingDetail.map(item => ({
-                    details: item.details,
-                    symbolName: item.symbolName,
+                    details: item.details && item.details.length > 0 ? item.details : item.compName,
+                    symbolName: item.symbolName && item.symbolName.length > 0 ? item.symbolName : item.compName,
                     isin: item.isin
                 }))
             }
@@ -183,21 +184,45 @@ exports.Page = class Page {
         return await this.hitApi(URL.CURRENT_STOCK_DETAILS,body, headers,method);
     }
 
-    async deleteFileIfExists(filePath) {
-        try {
-            // Check if the file exists
-            await access(filePath);  // No callback needed, since it's now promisified.
-            // If the file exists, delete it
-            await unlink(filePath);
-            console.log(`File '${filePath}' deleted successfully.`);
-        } catch (error) {
-            // Handle cases where the file doesn't exist or other errors occur
-            if (error.code === 'ENOENT') {
-                console.log(`File '${filePath}' does not exist.`);
-            } else {
-                console.error(`Error checking or deleting file '${filePath}':`, error);
+    async getDividendsDetails(isin){
+        const method = 'POST'; // Change to 'GET' if necessary
+        const body = {
+            isin: isin,
+            party_code: UserDetails.clientID
+        };
+        const headers = {
+            'accesstoken': `${this.authorizationHeader}`,
+            'Content-Type': 'application/json'
+        };
+        return await this.hitApi(URL.DIVIDENDS,body, headers,method);
+    }
+
+    async deleteFilesInFolder(folderPath) {
+        fs.readdir(folderPath, (err, files) => {
+            if (err) {
+                console.error(`Error reading folder '${folderPath}':`, err);
+                return;
             }
-        }
+    
+            files.forEach(file => {
+                const filePath = path.join(folderPath, file);
+    
+                // Check if it's a file (not a subfolder)
+                fs.stat(filePath, (statErr, stats) => {
+                    if (statErr) {
+                        return; // Skip this file if there was an error
+                    }
+    
+                    if (stats.isFile()) {
+                        fs.unlink(filePath, (unlinkErr) => {
+                            if (!unlinkErr) {
+                                console.log(`File '${filePath}' deleted successfully.`);
+                            }
+                        });
+                    }
+                });
+            });
+        });
     }
 
     async minimizeBrowser() {

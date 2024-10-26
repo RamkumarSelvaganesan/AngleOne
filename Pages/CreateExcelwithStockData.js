@@ -1,26 +1,38 @@
 const XLSX = require('xlsx');
-const fs = require('fs').promises; // Use fs.promises for async file operations
+const fs = require('fs').promises;
 
-async function addJsonToExcel(outputExcelfilePath, jsonFilePath) {
-    console.log(`Adding data from '${jsonFilePath}' to Excel file '${outputExcelfilePath}'...`);
+async function addJsonToExcel(outputExcelfilePath, transactionJsonFilePath, dividendJsonFilePath) {
+    console.log(`Adding data from '${transactionJsonFilePath}' and '${dividendJsonFilePath || "No dividend data"}' to Excel file '${outputExcelfilePath}'.`);
     let workbook;
-    let sheetData = [];
 
-    // Check if the Excel file exists
+    // Check if the Excel file exists, otherwise create a new workbook
     try {
-        await fs.access(outputExcelfilePath); // Check if the file exists
+        await fs.access(outputExcelfilePath);
         workbook = XLSX.readFile(outputExcelfilePath);
         console.log(`Excel file '${outputExcelfilePath}' found. Appending data.`);
     } catch (error) {
-        workbook = XLSX.utils.book_new(); // Create a new workbook
+        workbook = XLSX.utils.book_new();
         console.log(`Excel file '${outputExcelfilePath}' not found. Creating a new file.`);
     }
 
-    // Load the JSON data
-    const jsonData = await readJsonFile(jsonFilePath);
-  //  console.log('Loaded JSON Data:', JSON.stringify(jsonData, null, 2)); // Debugging: show loaded JSON data
+    // Process the transactions and add to 'Stock Data' sheet
+    const transactionData = await readJsonFile(transactionJsonFilePath);
+    await addTransactionSheet(workbook, transactionData);
 
-    // Prepare headers for the new worksheet
+    // Process the dividends only if the file path is not null
+    if (dividendJsonFilePath) {
+        const dividendData = await readJsonFile(dividendJsonFilePath);
+        await addDividendSheet(workbook, dividendData);
+    } else {
+        console.log("No dividend file path provided; skipping dividend processing.");
+    }
+
+    // Write the workbook to the file
+    await XLSX.writeFile(workbook, outputExcelfilePath);
+    console.log(`Data successfully added to '${outputExcelfilePath}'!`);
+}
+
+async function addTransactionSheet(workbook, jsonData) {
     const headers = [
         "Stock Name", "Stock Company", "Today's Price", "Transaction Type",
         "Purchased date", "Purchased value", "Quantity", "Total Invested Price",
@@ -29,25 +41,24 @@ async function addJsonToExcel(outputExcelfilePath, jsonFilePath) {
         "One year projected gain percentage", "AngleOne Commission per share",
         "Total angleOne commission"
     ];
-
-    // Check if we already have a worksheet
+    
+    let sheetData = [];
     let worksheet = workbook.Sheets['Stock Data'];
     if (!worksheet) {
-        // Create a new worksheet if it doesn't exist
-        sheetData.push(headers); // Add headers to sheetData
-        console.log("New worksheet created with headers.");
+        sheetData.push(headers);
+        console.log("New 'Stock Data' worksheet created with headers.");
     } else {
-        // Load existing data from the worksheet
         sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-      //  console.log('Existing sheet data loaded:', JSON.stringify(sheetData, null, 2)); // Debugging: show existing sheet data
     }
 
-    // Add the JSON data as rows
     jsonData.transaction_details.forEach(transaction => {
         if (transaction.type) {
+            const stockName = (jsonData.symbol_name && jsonData.symbol_name.trim() !== "" ) ? jsonData.symbol_name : jsonData.comp_name;
+            const stockDetails = (jsonData.stock_details && jsonData.stock_details.trim() !== "") ? jsonData.stock_details : jsonData.comp_name;
+
             const row = [
-                jsonData.stock_name,
-                jsonData.stock_details,
+                stockName,
+                stockDetails,
                 jsonData.today_stock_price,
                 transaction.type,
                 transaction.date,
@@ -59,29 +70,56 @@ async function addJsonToExcel(outputExcelfilePath, jsonFilePath) {
                 transaction.overall_gain_as_of_today,
                 transaction.one_day_gain,
                 transaction.one_day_gain_percentage,
-                transaction.one_year_projected_gain,
-                transaction.one_year_projected_gain_percentage,
+                jsonData.one_year_projected_gain,
+                jsonData.one_year_projected_gain_percentage,
                 transaction.angleOne_commission_per_share,
                 transaction.total_angleOne_commission
             ];
-         //   console.log("Adding transaction row:", JSON.stringify(row)); // Debugging: show each transaction row being added
             sheetData.push(row);
         }
     });
 
-    // Check if we have valid rows to write
-    if (sheetData.length > 1) { // Ensure there's at least one data row (beyond headers)
-        // Create or update the worksheet with the combined data
+    if (sheetData.length > 1) {
         worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-        workbook.Sheets['Stock Data'] = worksheet; // Associate the worksheet with the workbook
-        if(workbook.SheetNames.length===0) {
-            workbook.SheetNames.push('Stock Data'); // Add the sheet name to SheetNames
+        workbook.Sheets['Stock Data'] = worksheet;
+        if (!workbook.SheetNames.includes('Stock Data')) {
+            workbook.SheetNames.push('Stock Data');
         }
-        // Write the updated workbook to the file
-        await XLSX.writeFile(workbook, outputExcelfilePath);
-        console.log(`Data for '${jsonData.stock_name}' transaction on '${jsonData.transaction_details[0].date}' added to '${outputExcelfilePath}' successfully!`);
+    }
+}
+
+async function addDividendSheet(workbook, jsonData) {
+    const headers = ["Stock Name", "Stock Details", "Date Dividend Provided", "Quantity", "Total Amount"];
+    let sheetData = [];
+    let worksheet = workbook.Sheets['Dividends'];
+
+    if (!worksheet) {
+        sheetData.push(headers);
+        console.log("New 'Dividends' worksheet created with headers.");
     } else {
-        console.log('No valid data to add to the Excel file.'); // No valid data found
+        sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    }
+
+    jsonData.dividends_details.forEach(dividend => {
+        const stockName = (jsonData.symbol_name && jsonData.symbol_name.trim() !== "" ) ? jsonData.symbol_name : jsonData.comp_name;
+        const stockDetails = (jsonData.stock_details && jsonData.stock_details.trim() !== "") ? jsonData.stock_details : jsonData.comp_name;
+
+        const row = [
+            stockName,
+            stockDetails,
+            dividend.dividend_provided_date,
+            dividend.quantity,
+            dividend.total_dividend_amount
+        ];
+        sheetData.push(row);
+    });
+
+    if (sheetData.length > 1) {
+        worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+        workbook.Sheets['Dividends'] = worksheet;
+        if (!workbook.SheetNames.includes('Dividends')) {
+            workbook.SheetNames.push('Dividends');
+        }
     }
 }
 
@@ -96,4 +134,5 @@ async function readJsonFile(jsonFilePath) {
     }
 }
 
+// Export only the addJsonToExcel function
 module.exports = addJsonToExcel;

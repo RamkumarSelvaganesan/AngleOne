@@ -3,6 +3,5 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-/StockDetails/Report/combined_stock_data.xlsx
-/StockDetails/*.json
+/StockDetails/
 /Constants/UserDetails.js
