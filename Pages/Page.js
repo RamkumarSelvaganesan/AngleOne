@@ -4,9 +4,6 @@ const UserDetails = require("../Constants/UserDetails");
 const { promisify } = require("util");
 const path = require("path");
 
-// Promisify fs methods to use them with async/await
-const access = promisify(fs.access);
-const unlink = promisify(fs.unlink);
 exports.Page = class Page {
   /**
    * @param {import('@playwright/test').Page} page
@@ -44,8 +41,8 @@ exports.Page = class Page {
 
       // Capture the Authorization header
       const headers = request.headers();
-      this.authorizationHeader = headers["token"] || null; // Return null if not present
-
+      this.authorizationHeader = headers["Cookie"] || headers["cookie"] || null; // Return null if not present
+      //console.log("this ---" + this.authorizationHeader);
       // Continue the request
       await route.continue();
     });
@@ -110,7 +107,9 @@ exports.Page = class Page {
                   ? item.symbolName
                   : item.compName,
               isin: item.isin,
-            })
+              ltp: item.ltp,
+              as_on_date: item.AsOnDate,
+            }),
           ),
         },
       },
@@ -128,32 +127,35 @@ exports.Page = class Page {
           console.log("Created Entire Portofilo details in ", filePath);
           this.loadPortfolioData();
         }
-      }
+      },
     );
   }
 
-  async hitApi(url, body = null, headers = {}, method = "POST") {
-    // console.log(`======url:${url}, body:${JSON.stringify(body)}, header: ${JSON.stringify(headers)}, method:${method} =========`);
+  async hitApi(endpoint, body = null, headers = {}, method = "POST") {
+    console.log(
+      `====== url: ${endpoint}, body: ${JSON.stringify(body)}, headers: ${JSON.stringify(
+        headers,
+      )}, method: ${method} ======`,
+    );
+
+    const response = await this.request.fetch(endpoint, {
+      method,
+      headers: {
+        ...headers,
+      },
+      data: body || undefined,
+    });
+
+    console.log(`Status: ${response.status()}`);
+    let jsonResponse = {};
     try {
-      // Send the POST request
-      return await this.page.evaluate(
-        async ({ url, body, headers, method }) => {
-          // Include method here
-          const res = await fetch(url, {
-            method: method,
-            headers: {
-              ...headers, // Add any custom headers passed
-            },
-            body: JSON.stringify(body), // Convert body to JSON for POST request
-          });
-          return res.json(); // Return the JSON response
-        },
-        { url, body, headers, method }
-      ); // Pass method as well
-    } catch (error) {
-      console.error("Error hitting the API:", error);
-      return { success: false, message: "API call failed" };
+      jsonResponse = await response.json();
+    } catch (e) {
+      console.log("Response is not JSON, returning empty object");
     }
+
+   //console.log("API Response:", JSON.stringify(jsonResponse, null, 2));
+    return { status: response.status(), body: jsonResponse };
   }
 
   async loadPortfolioData() {
@@ -169,7 +171,7 @@ exports.Page = class Page {
         // Parse the JSON data into a JavaScript object
         this.portfolioData = JSON.parse(data);
         console.log("Entire Portfolio data loaded successfully:");
-      }
+      },
     );
   }
 
@@ -180,7 +182,7 @@ exports.Page = class Page {
       party_code: UserDetails.clientID,
     };
     const headers = {
-      token: `${this.authorizationHeader}`,
+      cookie: `${this.authorizationHeader}`,
       "Content-Type": "application/json",
     };
     return await this.hitApi(URL.TRANSACTIONS, body, headers, method);
@@ -193,7 +195,7 @@ exports.Page = class Page {
       partyCode: UserDetails.clientID,
     };
     const headers = {
-      accesstoken: `${this.authorizationHeader}`,
+      cookie: `${this.authorizationHeader}`,
       "Content-Type": "application/json",
     };
     return await this.hitApi(URL.CURRENT_STOCK_DETAILS, body, headers, method);
@@ -206,7 +208,7 @@ exports.Page = class Page {
       party_code: UserDetails.clientID,
     };
     const headers = {
-      accesstoken: `${this.authorizationHeader}`,
+      cookie: `${this.authorizationHeader}`,
       "Content-Type": "application/json",
     };
     return await this.hitApi(URL.DIVIDENDS, body, headers, method);

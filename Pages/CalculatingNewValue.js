@@ -1,16 +1,16 @@
 const fs = require("fs");
 async function generateNewDataForStock(transactionDetails, stockDetails) {
-  const transactionData = transactionDetails.data; // Array of transaction objects
-  const stockData = stockDetails.data; // Single stock details object
+  const transactionData = transactionDetails.body.data; // Array of transaction objects
+  const stockData = stockDetails; // Single stock details object
   const totalQty = stockData.total_qty; // Total quantity of stock
 
   // Creating new JSON object
   const newJsonObject = {
-    stock_name: stockData.symbol_name,
+    stock_name: stockData.symbolName,
     stock_details: stockData.details,
-    comp_name: stockData.comp_name,
+    comp_name: stockData.symbolName,
     today_stock_price: stockData.ltp,
-    transaction_details: []
+    transaction_details: [],
   };
 
   // Initialize accumulators for calculating averages
@@ -38,7 +38,7 @@ async function generateNewDataForStock(transactionDetails, stockDetails) {
     const asOnDate = new Date(stockData.as_on_date);
     const transactionDate = new Date(transaction.transaction_date);
     const holdingDays = Math.floor(
-      (asOnDate - transactionDate) / (1000 * 60 * 60 * 24)
+      (asOnDate - transactionDate) / (1000 * 60 * 60 * 24),
     );
 
     // Calculating gain and holding days
@@ -100,8 +100,8 @@ async function generateNewDataForStock(transactionDetails, stockDetails) {
   });
 
   const filePath = `StockDetails/Individual/${
-    stockData.symbol_name.trim() !== ""
-      ? stockData.symbol_name
+    stockData.symbolName.trim() !== ""
+      ? stockData.symbolName
       : stockData.comp_name
   }.json`;
   await fs.writeFile(
@@ -113,12 +113,12 @@ async function generateNewDataForStock(transactionDetails, stockDetails) {
       } else {
         console.log(
           "Computed stock details for",
-          stockData.symbol_name.trim() !== ""
-            ? stockData.symbol_name
-            : stockData.comp_name
+          stockData.symbolName.trim() !== ""
+            ? stockData.symbolName
+            : stockData.comp_name,
         );
       }
-    }
+    },
   );
 
   //console.log('Combined Response:', JSON.stringify(newJsonObject, null, 2));

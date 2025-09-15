@@ -28,9 +28,9 @@ exports.LoginPage = class LoginPage extends Page {
   async enterLoginPin(pin) {
     await this.type(Locators.loginPage.loginPin, pin);
     console.log("PIN entered:" + pin);
-    await this.click(Locators.loginPage.submit);
+    await this.click(Locators.loginPage.pinSubmit);
     console.log("Login clicked");
-    await this.click(Locators.dashboardPage.notNow);
-    console.log("Not Now clicked");
+    // await this.click(Locators.dashboardPage.notNow);
+    // console.log("Not Now clicked");
   }
 };

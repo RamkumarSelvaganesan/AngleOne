@@ -8,16 +8,17 @@ const generateDividendsDataForStock = require("./CaptureDividendDetails.js");
 const generateNewDataForStock = require("./CalculatingNewValue");
 
 exports.DashboardPage = class DashboardPage extends Page {
-  constructor(page) {
+  constructor(page, request) {
     super(page);
     this.page = page;
     this.context = page.context();
+    this.request = request;
   }
 
   async goToPortfolio() {
     const { response } = await this.captureApiDetailsOnClick(
       URL.PORTFOLIO,
-      Locators.dashboardPage.portfolio
+      Locators.dashboardPage.portfolio,
     );
     console.log("Navigated to Portfolio page");
     await this.minimizeBrowser();
@@ -29,29 +30,32 @@ exports.DashboardPage = class DashboardPage extends Page {
       await this.page.waitForTimeout(500);
       console.log("waiting....");
     }
-    const holdingDetails = await this.portfolioData.data.EquityPortfolio
-      .HoldingDetail;
+    const holdingDetails =
+      await this.portfolioData.data.EquityPortfolio.HoldingDetail;
+
     for (const stock of holdingDetails) {
-      await this.createStockDetailsJsonFile(stock.isin); // Await for each async call
+      await this.createStockDetailsJsonFile(stock); // Await for each async call
     }
   }
 
-  async createStockDetailsJsonFile(isin) {
-    console.log(`Creating individual Stock details for isIn: ${isin}`);
-    const stockDetails = await this.getCurrentStockDetails(isin);
+  async createStockDetailsJsonFile(stock) {
     console.log(
-      `fetched Today stock detail for : ${stockDetails.data.symbol_name} successfully`
+      `Creating individual Stock details..${stock.details}..${stock.isin}`,
     );
-    const transactionDetails = await this.getTransactionDetails(isin);
+    const stockDetails = await this.getCurrentStockDetails(stock.isin);
+    // console.log(
+    //   `fetched Today stock detail for : ${stockDetails.data.symbol_name} successfully`
+    // );
+    const transactionDetails = await this.getTransactionDetails(stock.isin);
     console.log(
-      `fetched Transaction detail for : ${stockDetails.data.symbol_name}  successfully`
+      `fetched Transaction detail for : ${stock.details}  successfully..`,
     );
-    const dividendDetails = await this.getDividendsDetails(isin);
+    const dividendDetails = await this.getDividendsDetails(stock.isin);
     console.log(
-      `fetched Dividend detail for : ${stockDetails.data.symbol_name}  successfully dividend`
+      `fetched Dividend detail for : ${stock.details}  successfully dividend`,
     );
-    await generateNewDataForStock(transactionDetails, stockDetails);
-    await generateDividendsDataForStock(dividendDetails, stockDetails);
+    await generateNewDataForStock(transactionDetails, stock);
+    await generateDividendsDataForStock(dividendDetails, stock);
   }
 
   async generateExcelReport() {
@@ -67,7 +71,7 @@ exports.DashboardPage = class DashboardPage extends Page {
       // Filter out non-JSON files and the file 'portfolioData.json'
       const jsonFiles = files.filter(
         (file) =>
-          path.extname(file) === ".json" && file !== "portfolioData.json"
+          path.extname(file) === ".json" && file !== "portfolioData.json",
       );
       console.log(`Filtered down to ${jsonFiles.length} JSON files.`);
 
@@ -79,7 +83,7 @@ exports.DashboardPage = class DashboardPage extends Page {
         // Check if a corresponding dividend file exists
         const dividendFilePath = path.join(dividendsDirectoryPath, jsonFile);
         console.log(
-          `Checking for corresponding dividend file: '${dividendFilePath}'`
+          `Checking for corresponding dividend file: '${dividendFilePath}'`,
         );
 
         const dividendFileExists = await fs
@@ -90,7 +94,7 @@ exports.DashboardPage = class DashboardPage extends Page {
           console.log(`Dividend file exists: '${dividendFilePath}'`);
         } else {
           console.log(
-            `No corresponding dividend file found for: '${jsonFilePath}'`
+            `No corresponding dividend file found for: '${jsonFilePath}'`,
           );
         }
 
@@ -98,12 +102,12 @@ exports.DashboardPage = class DashboardPage extends Page {
         await addJsonToExcel(
           outputFilePath,
           jsonFilePath,
-          dividendFileExists ? dividendFilePath : null
+          dividendFileExists ? dividendFilePath : null,
         );
       }
 
       console.log(
-        "All JSON files have been processed and added to the Excel sheet."
+        "All JSON files have been processed and added to the Excel sheet.",
       );
     } catch (error) {
       console.error(`Error generating Excel report: ${error.message}`);
