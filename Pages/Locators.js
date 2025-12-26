@@ -7,6 +7,6 @@ module.exports = {
   },
   dashboardPage: {
     notNow: '//button[text()="NOT NOW"]',
-    portfolio: "span.icon-nav-portfolio",
+    portfolio: "span[aria-label='Portfolio']",
   },
 };

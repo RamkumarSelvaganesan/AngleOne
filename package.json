@@ -14,5 +14,8 @@
   },
   "dependencies": {
     "xlsx": "^0.18.5"
+  },
+  "scripts" : {
+    "start": "npx playwright test tests/AngleOneLoginTest.spec.js"
   }
 }

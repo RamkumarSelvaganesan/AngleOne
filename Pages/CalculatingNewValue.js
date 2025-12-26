@@ -41,14 +41,24 @@ async function generateNewDataForStock(transactionDetails, stockDetails) {
       (asOnDate - transactionDate) / (1000 * 60 * 60 * 24),
     );
 
-    // Calculating gain and holding days
+// Calculating gain and holding days
     const gainAsOfTodayPerShare = stockData.ltp - transaction.average_price;
+
     const overallGainAsOfToday = gainAsOfTodayPerShare * transaction.qty;
+
     const oneDayGain = overallGainAsOfToday / holdingDays;
+
     const oneDayGainPercentage =
       (oneDayGain / transaction.total_invested_price) * 100;
-    const oneYearProjectedGain = oneDayGain * 365;
-    const oneYearProjectedGainPercentage = oneDayGainPercentage * 365;
+
+// CAGR-based one-year projected percentage
+    const oneYearProjectedGainPercentage =
+      ((stockData.ltp / transaction.average_price) ** (365 / holdingDays) - 1) * 100;
+
+// CAGR-based one-year projected gain (absolute ₹)
+    const oneYearProjectedGain =
+      transaction.total_invested_price * (oneYearProjectedGainPercentage / 100);
+
 
     // Adding values to the transaction object
     transactionObject.holding_days = holdingDays;

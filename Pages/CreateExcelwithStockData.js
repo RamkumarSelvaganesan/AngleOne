@@ -99,10 +99,10 @@ async function addTransactionSheet(workbook, jsonData) {
         transaction.overall_gain_as_of_today,
         transaction.one_day_gain,
         transaction.one_day_gain_percentage,
-        jsonData.one_year_projected_gain,
-        jsonData.one_year_projected_gain_percentage,
-        transaction.angleOne_commission_per_share,
-        transaction.total_angleOne_commission,
+        transaction.one_year_projected_gain,
+        transaction.one_year_projected_gain_percentage,
+        jsonData.angleOne_commission_per_share,
+        jsonData.total_angleOne_commission,
       ];
       sheetData.push(row);
     }
